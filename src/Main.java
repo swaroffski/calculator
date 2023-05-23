@@ -1,47 +1,153 @@
-import org.jetbrains.annotations.NotNull;
-import java.util.Scanner;                               // Этот оператор импортирует класс Scanner из пакета java.util, который позволяет считывать ввод пользователя
+import java.util.Scanner;
+import java.util.HashMap;
+import java.util.Map;
 
-class Main {                                            // Объявление класса Main и его метода main. Метод main является точкой входа в программу
-    public static void main(String[] args) {            //
-        Scanner scanner = new Scanner(System.in);       // Создание объекта scanner класса Scanner для считывания пользовательского ввода
-        String input = scanner.nextLine();              // Чтение строки, введенной пользователем, и сохранение ее в переменной input
-        String result = calc(input);                    // Вызов метода calc с аргументом input и сохранение результата в переменной result
-        System.out.println(result);                     // Вывод результата на консоль
+class Main {
+    // Создаем отображение римских цифр и их десятичных значений
+    private static final Map<Character, Integer> romanNumerals = createRomanNumeralsMap();
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        String input = scanner.nextLine();
+        try {
+            String result = calc(input);
+            System.out.println(result);
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
-    public static @NotNull String calc(String input) {   // Объявление метода calc, который принимает строку input в качестве аргумента и возвращает строку
-                                                         //     Аннотация @NotNull указывает на то, что метод calc возвращает строку, которая не может быть равна null
-                                                         //     Это гарантирует, что вызывающий код не будет получать null значения при использовании результата этого метода
-        String[] tokens = input.split(" ");        // Разделение строки input на подстроки с помощью пробела и сохранение результатов в массиве строк tokens
-        int num1 = Integer.parseInt(tokens[0]);          // Преобразование первой и третьей подстрок из массива tokens в целочисленные значения num1 и num2
-        int num2 = Integer.parseInt(tokens[2]);          //     с помощью метода parseInt
-        char operator = tokens[1].charAt(0);             // Извлечение первого символа из второй подстроки массива tokens и сохранение его в переменной operator
-        int result = 0;                                  // Инициализация переменной result, которая будет содержать результат операции
+    public static String calc(String input) {
+        // Разбиваем входную строку на отдельные токены (число, оператор, число)
+        String[] tokens = input.split(" ");
+        // Проверяем, что количество токенов равно 3
+        if (tokens.length != 3) {
+            throw new IllegalArgumentException("Invalid input");
+        }
 
-        switch (operator) {                              // Оператор switch используется для выполнения разных операций в зависимости от значения переменной operator
-            case '+':                                    // В данном случае происходит проверка значения operator и выполнение соответствующей арифметической операции
-                result = num1 + num2;                    //
-                break;                                   //
-            case '-':                                    //
-                result = num1 - num2;                    //
-                break;                                   //
-            case '*':                                    //
-                result = num1 * num2;                    //
-                break;                                   //
-            case '/':                                    //
-                if (num2 != 0) {                         //
-                    result = num1 / num2;                //
+        // Извлекаем первое и второе число, а также оператор из токенов
+        String num1Str = tokens[0];
+        String num2Str = tokens[2];
+        int num1;
+        int num2;
+        char operator = tokens[1].charAt(0);
+
+        // Проверяем, являются ли оба числа римскими цифрами
+        if (isRomanNumeral(num1Str) && isRomanNumeral(num2Str)) {
+            // Если оба числа римские, конвертируем их в десятичные значения
+            num1 = romanToDecimal(num1Str);
+            num2 = romanToDecimal(num2Str);
+        }
+        // Проверяем, являются ли оба числа арабскими цифрами
+        else if (isNumeric(num1Str) && isNumeric(num2Str)) {
+            // Если оба числа арабские, парсим их в целочисленные значения
+            num1 = Integer.parseInt(num1Str);
+            num2 = Integer.parseInt(num2Str);
+        }
+        // Если оба числа не соответствуют одному из типов (арабские или римские), выбрасываем исключение
+        else {
+            throw new IllegalArgumentException("Invalid input");
+        }
+
+        int result;
+        // Выполняем операцию в зависимости от оператора
+        switch (operator) {
+            case '+':
+                result = num1 + num2;
+                break;
+            case '-':
+                result = num1 - num2;
+                break;
+            case '*':
+                result = num1 * num2;
+                break;
+            case '/':
+                // Проверяем, что второе число не равно нулю перед делением
+                if (num2 != 0) {
+                    result = num1 / num2;
                 } else {
-                    return "Division by zero";           // Если выполняется деление на ноль, будет возвращена строка "Деление на ноль"
+                    throw new IllegalArgumentException("Division by zero");
                 }
                 break;
             default:
-                return "Invalid operator";                // Если оператор не является одним из допустимых (+, -, *, /), будет возвращена строка "Неверный оператор"
+                throw new IllegalArgumentException("Invalid operator");
         }
 
-        return Integer.toString(result);                  // Преобразование значения result в строку с помощью метода toString() класса Integer
-                                                          //    и возвращение этой строки в качестве результата метода calc.
+        // Проверяем, являются ли оба числа римскими цифрами
+        if (isRomanNumeral(num1Str) && isRomanNumeral(num2Str)) {
+            // Если результат отрицательный или нулевой, выбрасываем исключение,
+            // так как римские цифры не могут представлять отрицательные значения или ноль
+            if (result <= 0) {
+                throw new IllegalArgumentException("Roman numeral result must be positive");
+            }
+            // Конвертируем десятичное значение в римскую цифру
+            return decimalToRoman(result);
+        } else {
+            // Возвращаем результат операции в виде строки
+            return Integer.toString(result);
+        }
     }
-}                                                         // Закрытие класса Main и метода main.
 
-// Дополнительный код
+    // Проверяем, является ли строка числом (арабским)
+    private static boolean isNumeric(String str) {
+        return str.matches("\\d+");
+    }
+
+    // Проверяем, является ли строка римской цифрой
+    private static boolean isRomanNumeral(String str) {
+        return str.matches("[IVX]+");
+    }
+
+    // Конвертируем римскую цифру в десятичное значение
+    private static int romanToDecimal(String romanNumeral) {
+        int decimal = 0;
+        int prevValue = 0;
+
+        // Обрабатываем римскую цифру справа налево
+        for (int i = romanNumeral.length() - 1; i >= 0; i--) {
+            char currentChar = romanNumeral.charAt(i);
+            int currentValue = romanNumerals.get(currentChar);
+
+            // Если текущее значение меньше предыдущего, вычитаем его из общего значения
+            if (currentValue < prevValue) {
+                decimal -= currentValue;
+            } else {
+                // Иначе, добавляем его к общему значению
+                decimal += currentValue;
+            }
+
+            prevValue = currentValue;
+        }
+
+        return decimal;
+    }
+
+    // Конвертируем десятичное значение в римскую цифру
+    private static String decimalToRoman(int decimal) {
+        StringBuilder romanNumeral = new StringBuilder();
+
+        // Обрабатываем римские цифры в порядке убывания их десятичных значений
+        for (Map.Entry<Character, Integer> entry : romanNumerals.entrySet()) {
+            char symbol = entry.getKey();
+            int value = entry.getValue();
+
+            // Пока десятичное значение больше или равно текущей римской цифры,
+            // добавляем эту цифру к результирующей строке и уменьшаем значение
+            while (decimal >= value) {
+                romanNumeral.append(symbol);
+                decimal -= value;
+            }
+        }
+
+        return romanNumeral.toString();
+    }
+
+    // Создаем отображение римских цифр и их десятичных значений
+    private static Map<Character, Integer> createRomanNumeralsMap() {
+        Map<Character, Integer> map = new HashMap<>();
+        map.put('I', 1);
+        map.put('V', 5);
+        map.put('X', 10);
+        return map;
+    }
+}
